@@ -1033,6 +1033,10 @@ def main():
 
     args = parser.parse_args()
 
+    env_port = os.environ.get("PORT")
+    web_port = int(env_port) if env_port else args.web_port
+    enable_web = args.web or (env_port is not None)
+
     if args.mode == "cli":
         run_cli_client(host="127.0.0.1" if args.host == "0.0.0.0" else args.host, port=args.port, use_tls=args.tls)
     else:
@@ -1041,8 +1045,8 @@ def main():
         server = MicroRedisVaultServer(
             host=args.host,
             port=args.port,
-            web_port=args.web_port,
-            enable_web=args.web,
+            web_port=web_port,
+            enable_web=enable_web,
             tls_cert=tls_cert,
             tls_key=tls_key
         )

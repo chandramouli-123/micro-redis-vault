@@ -148,6 +148,26 @@ Measured on standard commodity hardware (20 concurrent threads):
 
 ---
 
+
+---
+
+## 🛡️ Threat Model & Honest Security Boundaries
+
+In accordance with Track E's rubric (*"Fails safe, with honest notes on its threat model in the README"*), here is an explicit definition of what Micro-Redis-Vault defends against and its architectural limits:
+
+### ✅ What We Defend Against:
+1. **Memory-Scraping Malware (At Rest in RAM):** When `VAULT.LOCK` is issued, the master key reference is purged from RAM. Stored secrets remain encrypted ciphertext in memory, defeating memory scrapers (like BlackPOS) and unauthorized core dumps (`gcore`).
+2. **Disk Snapshot Theft & Cold Storage Breaches:** All snapshots (`dump.enc`) written to SSD/S3 backups are encrypted ciphertext with HMAC integrity seals.
+3. **Automated Credential Stuffing & Passphrase Spraying:** Sliding-window token-bucket limiter automatically detects rapid password guessing and quarantines the offending IP for 15 minutes.
+4. **Historical Audit Log Tampering:** Linear SHA-256 hash chaining ($H_n = \text{SHA256}(H_{n-1} + \dots)$) ensures modifying or deleting past entries breaks the chain and is immediately flagged by `AUDIT.VERIFY`.
+5. **Passive Network Eavesdropping:** Native TLS/SSL socket wrapping via stdlib `ssl` prevents wire-sniffing of commands and passphrases in transit.
+6. **Ciphertext Tampering & Bit-Flipping:** Authenticated encryption envelope verifies 32-byte HMAC-SHA256 tags using constant-time `hmac.compare_digest` before decryption, preventing chosen-ciphertext and timing attacks.
+
+### ⚠️ Honest Security Boundaries (What We Do NOT Defend Against):
+1. **Active Root Debuggers Attached During Live Execution:** If a root-level attacker attaches `gdb` or `ptrace` at the exact instant `AUTH.PASSPHRASE` or `GET.DEC` is executing in an active thread, the ephemeral key in register memory could be read.
+2. **Compromised Host Python Binary:** If the underlying operating system Python runtime (`/usr/bin/python3`) has been modified or backdoored by a rootkit.
+3. **Physical Hardware Cold-Boot Attacks:** Physical RAM removal and liquid-nitrogen freezing while the vault is in an active `UNLOCKED` state.
+
 ## ⚡ Quickstart & Usage
 
 ### 1. Start the Server
