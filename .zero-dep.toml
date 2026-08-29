@@ -1,0 +1,14 @@
+[project]
+name = "micro-redis-vault"
+track = "D"
+secondary_track = "E"
+one_line_pitch = "A zero-dependency, Redis-compatible in-memory database with defense-in-depth cryptographic security and memory scrubbing."
+language = "python"
+version = "1.0.0"
+author = "chandramouli-123"
+
+[bonuses]
+single_file = true
+reproducible_build = true
+package_killer = true
+stdlib_log = true

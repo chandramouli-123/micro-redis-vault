@@ -33,7 +33,7 @@ Today, every modern application uses **Redis** in the same exposed way:
 
 ```
                       ┌────────────────────────────────────────┐
-                      │    Redis CLI / Web App / REST Client   │
+                      │   Redis CLI / Netcat / Web Console     │
                       └───────────────────┬────────────────────┘
                                           │
                             RESP / TCP Port 6379 (TLS Optional)
@@ -71,18 +71,18 @@ Today, every modern application uses **Redis** in the same exposed way:
 
 ## 🚀 Key Features
 
-* **⚡ Wire-Compatible RESP Protocol:** Listens on raw TCP sockets and implements standard Redis Serialization Protocol format alongside standard inline commands (`SET`, `GET`, `DEL`, `EXISTS`, `KEYS`, `PING`, `INFO`, `FLUSHALL`).
-* **🔒 Authenticated Keystream Cipher:** Implements PBKDF2-HMAC-SHA256 key derivation (100,000 rounds) with an authenticated counter-mode HMAC-SHA256 keystream cipher and constant-time HMAC-SHA256 integrity verification.
-* **🛡️ Dynamic Memory Zeroing (`VAULT.LOCK`):** Instantly purges and scrubs master encryption keys from RAM, defeating memory scrapers and core dump scrapers.
-* **💾 Encrypted Disk Snapshots (`dump.enc`):** Serializes database state directly into ciphertext alongside persisted salt (`salt.bin`). Cleartext secrets never touch the SSD.
-* **🚨 Sliding-Window IP Jailing:** Automatically tracks failed authentication attempts per client IP and quarantines attackers for 15 minutes after 5 failures.
-* **📜 Blockchain-Style Hash-Chained Audit Ledger:** Chained hash audit log where every entry is cryptographically linked:
+* **Wire-Compatible RESP Protocol:** Listens on raw TCP sockets and implements standard Redis Serialization Protocol format alongside standard inline commands (`SET`, `GET`, `DEL`, `EXISTS`, `KEYS`, `PING`, `INFO`, `FLUSHALL`).
+* 🔒 **Authenticated Keystream Cipher:** Implements PBKDF2-HMAC-SHA256 key derivation (100,000 rounds) with an authenticated counter-mode HMAC-SHA256 keystream cipher and constant-time `hmac.compare_digest` integrity verification.
+* 🛡️ **Dynamic Memory Zeroing (`VAULT.LOCK`):** Instantly purges and scrubs master encryption keys from RAM, defeating memory scrapers and core dump scrapers.
+* **Encrypted Disk Snapshots (`dump.enc`):** Serializes database state directly into ciphertext alongside persisted salt (`salt.bin`). Cleartext secrets never touch the SSD.
+* **Sliding-Window IP Jailing:** Automatically tracks failed authentication attempts per client IP and quarantines attackers for 15 minutes after 5 failures.
+* 📜 **Blockchain-Style Hash-Chained Audit Ledger:** Linear hash audit log where every entry is cryptographically linked:
   $$\text{Hash}_n = \text{SHA256}(\text{Hash}_{n-1} + \text{Timestamp} + \text{Client\_IP} + \text{Command})$$
   Modifying even a single character in `audit.log` causes `AUDIT.VERIFY` to instantly flag tampering.
-* **🔒 Transport Encryption (TLS):** Built-in support for TLS socket encryption via Python's standard `ssl` module (`--tls`).
-* **🔍 Full-Text Inverted Search Index:** Tokenizes text values into lowercase word sets for multi-keyword search queries (`SEARCH <query>`).
-* **🖥️ Built-in Zero-Dep Terminal REPL:** Interactive colored command-line interface (`python micro_redis_vault.py cli`).
-* **🌐 Zero-Dep Web Admin UI & Console:** Embedded single-file HTML/CSS/JS dashboard and Web REPL served on port 6380 (`--web`).
+* 🔒 **Transport Encryption (TLS):** Built-in support for TLS socket encryption via Python's standard `ssl` module (`--tls`).
+* **Full-Text Inverted Search Index:** Tokenizes text values into lowercase word sets for multi-keyword search queries (`SEARCH <query>`).
+* **Built-in Zero-Dep Terminal REPL:** Interactive colored command-line interface (`python micro_redis_vault.py cli`).
+* **Zero-Dep Web Admin Console:** Embedded single-file HTML/CSS/JS dashboard and Web REPL served on port 6380 (`--web`).
 
 ---
 
@@ -100,7 +100,7 @@ micro-vault [127.0.0.1:6379]> AUDIT.VERIFY
 STATUS: VALID | ENTRIES: 3 | DETAIL: Hash-chain integrity verified successfully
 ```
 
-**🚨 What happens when an attacker tampers with historical logs on disk?**
+**What happens when an attacker tampers with historical logs on disk?**
 ```bash
 # Attacker alters a past command in audit.log
 sed -i 's/SET.ENC/DEL/g' audit.log
@@ -127,8 +127,8 @@ $ python3 demo_attack_sim.py
 [Attempt #3] Sending guess: 'password' ... REJECTED: -ERR Invalid passphrase. 2 attempts remaining before IP jail
 [Attempt #4] Sending guess: 'qwerty' ... REJECTED: -ERR Invalid passphrase. 1 attempts remaining before IP jail
 [Attempt #5] Sending guess: 'welcome' ... 
- 🛡️ DEFENSE TRIGGERED: -ERR Invalid passphrase. IP JAILED for 900s 
-✅ SUCCESS: Micro-Redis-Vault has quarantined this IP address!
+ DEFENSE TRIGGERED: -ERR Invalid passphrase. IP JAILED for 900s 
+ SUCCESS: Micro-Redis-Vault has quarantined this IP address!
 ```
 
 ---
@@ -143,7 +143,7 @@ Measured on standard commodity hardware (20 concurrent threads):
 | **P50 Latency (Median)** | **3.035 ms** | Non-blocking TCP buffers |
 | **P95 Latency** | **5.500 ms** | Mutex-protected memory store |
 | **P99 Latency** | **8.679 ms** | Multi-threaded client pool |
-| **PBKDF2 Key Derivation** | **0.021 s** | `hashlib.pbkdf2_hmac` (100k rounds) |
+| **PBKDF2 Key Derivation** | **21 ms (0.021 s)** | `hashlib.pbkdf2_hmac` (100k rounds) |
 | **Idle Memory Footprint** | **~14.2 MB** | Pure Python standard library |
 
 ---
