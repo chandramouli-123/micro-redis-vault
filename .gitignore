@@ -27,3 +27,6 @@ env/
 venv/
 .DS_Store
 Thumbs.db
+
+#other files
+SYSTEM_DESIGN_AND_PITCH_GUIDE.md
