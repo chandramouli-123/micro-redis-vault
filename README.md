@@ -16,11 +16,11 @@ In 2013, retail giant Target lost 40 million credit card numbers—not because t
 
 Today, every modern application uses **Redis** in the same exposed way:
 * Live User Session Tokens & OAuth Access Keys
-* API Credentials & Database Connection Strings
+* Production API Keys & Database Connection Strings
 * Customer PII (Personally Identifiable Information)
 
 ### Why Standard Redis Fails in High-Security Environments:
-1. **Unprotected RAM:** Redis stores raw strings in cleartext memory. Anyone with container or root access executing a memory dump (`gcore redis-server`) can extract all active session tokens in seconds.
+1. **Unprotected Memory:** Redis stores raw strings in cleartext memory. Anyone with container or root access executing a memory dump (`gcore redis-server`) can extract all active session tokens in seconds.
 2. **Unencrypted Disk Backups:** Redis snapshots (`dump.rdb`) written to SSD or S3 backups are unencrypted plaintext.
 3. **No Native Brute-Force Jailing:** Standard Redis allows infinite password guesses per second without rate-limiting.
 
@@ -86,6 +86,53 @@ Today, every modern application uses **Redis** in the same exposed way:
 
 ---
 
+## 📸 Interactive Security Showcase
+
+### 1. Tamper-Evident Audit Ledger (`AUDIT.LOG` & `AUDIT.VERIFY`)
+
+```text
+micro-vault [127.0.0.1:6379]> AUDIT.LOG 3
+1) [2026-08-29T14:30:00Z] (127.0.0.1) AUTH.PASSPHRASE *** -> a8f9e12c4b01...
+2) [2026-08-29T14:30:05Z] (127.0.0.1) SET.ENC user:101:api_key *** -> b4d3a7e09f22...
+3) [2026-08-29T14:30:12Z] (127.0.0.1) GET.DEC user:101:api_key -> c7e1f49a8831...
+
+micro-vault [127.0.0.1:6379]> AUDIT.VERIFY
+STATUS: VALID | ENTRIES: 3 | DETAIL: Hash-chain integrity verified successfully
+```
+
+**🚨 What happens when an attacker tampers with historical logs on disk?**
+```bash
+# Attacker alters a past command in audit.log
+sed -i 's/SET.ENC/DEL/g' audit.log
+```
+```text
+micro-vault [127.0.0.1:6379]> AUDIT.VERIFY
+STATUS: CORRUPTED | ENTRIES: 2 | DETAIL: Checksum mismatch at entry #2
+```
+
+---
+
+### 2. Live Brute-Force Defense & IP Jailing
+
+```text
+$ python3 demo_attack_sim.py
+============================================================
+ 🚨 LAUNCHING AUTOMATED BRUTE-FORCE ATTACK SIMULATION 🚨
+ Target: 127.0.0.1:6379
+ Attack Vector: Passphrase Spraying (AUTH.PASSPHRASE)
+============================================================
+
+[Attempt #1] Sending guess: 'admin1' ... REJECTED: -ERR Invalid passphrase. 4 attempts remaining before IP jail
+[Attempt #2] Sending guess: '123456' ... REJECTED: -ERR Invalid passphrase. 3 attempts remaining before IP jail
+[Attempt #3] Sending guess: 'password' ... REJECTED: -ERR Invalid passphrase. 2 attempts remaining before IP jail
+[Attempt #4] Sending guess: 'qwerty' ... REJECTED: -ERR Invalid passphrase. 1 attempts remaining before IP jail
+[Attempt #5] Sending guess: 'welcome' ... 
+ 🛡️ DEFENSE TRIGGERED: -ERR Invalid passphrase. IP JAILED for 900s 
+✅ SUCCESS: Micro-Redis-Vault has quarantined this IP address!
+```
+
+---
+
 ## 📊 Concrete Performance Benchmarks
 
 Measured on standard commodity hardware (20 concurrent threads):
@@ -139,14 +186,6 @@ VAULT_LOCKED (Master key purged from RAM)
 # Attempting to decrypt while locked fails securely:
 micro-vault> GET.DEC user:101:api_key
 (error) -ERR Vault is locked. Unlock using AUTH.PASSPHRASE first
-
-# View and verify hash-chained audit ledger
-micro-vault> AUDIT.LOG
-1) [2026-08-29T14:30:00Z] (127.0.0.1) AUTH.PASSPHRASE *** -> a8f9e12c...
-2) [2026-08-29T14:30:05Z] (127.0.0.1) SET.ENC user:101:api_key *** -> b4d3a7e0...
-
-micro-vault> AUDIT.VERIFY
-STATUS: VALID | ENTRIES: 2 | DETAIL: Hash-chain integrity verified successfully
 ```
 
 ---
