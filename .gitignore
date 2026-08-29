@@ -1,0 +1,29 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database runtime data & snapshots
+*.enc
+dump.enc
+test_dump.enc
+*.bin
+salt.bin
+
+# Runtime logs & audit files
+*.log
+audit.log
+test_audit.log
+
+# TLS / SSL Certificates & Private Keys
+*.pem
+*.key
+*.crt
+
+# Environments & OS files
+.env
+.venv
+env/
+venv/
+.DS_Store
+Thumbs.db
