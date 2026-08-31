@@ -555,11 +555,21 @@ class RespParser:
 # =====================================================================
 
 class MicroRedisVaultServer:
-    def __init__(self, host="0.0.0.0", port=6379, web_port=6380, enable_web=False, tls_cert=None, tls_key=None):
+    def __init__(self, host="0.0.0.0", port=None, web_port=None, enable_web=None, tls_cert=None, tls_key=None):
         self.host = host
-        self.port = port
-        self.web_port = web_port
-        self.enable_web = enable_web
+        
+        # Railway-compatible dynamic port resolution
+        env_port = os.environ.get("PORT")
+        if env_port:
+            port_num = int(env_port)
+            self.web_port = int(web_port) if web_port is not None else port_num
+            self.port = int(port) if port is not None else (port_num - 1 if port_num > 1 else 6379)
+            self.enable_web = True if enable_web is None else enable_web
+        else:
+            self.web_port = int(web_port) if web_port is not None else 6380
+            self.port = int(port) if port is not None else 6379
+            self.enable_web = False if enable_web is None else enable_web
+
         self.tls_cert = tls_cert
         self.tls_key = tls_key
         self.storage = StorageEngine()
