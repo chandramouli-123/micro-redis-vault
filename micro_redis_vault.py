@@ -586,12 +586,11 @@ class MicroRedisVaultServer:
 
         print("=" * 60, flush=True)
         print("  ⚡ MICRO-REDIS-VAULT SERVER READY ⚡", flush=True)
+        print(f"Web server listening on 0.0.0.0:{self.web_port}", flush=True)
         if self.server_sock:
-            print(f"  * TCP / RESP Server listening on : {self.host}:{self.port}", flush=True)
+            print(f"RESP server listening on 0.0.0.0:{self.port}", flush=True)
         if self.ssl_context:
             print("  * Transport Security (TLS)       : ENABLED 🔒", flush=True)
-        if self.enable_web:
-            print(f"  * Web Server listening on        : http://0.0.0.0:{self.web_port}", flush=True)
         print("  * Zero 3rd-party dependencies    : 100% Python Stdlib", flush=True)
         print("  * Hash-Chained Audit Ledger      : audit.log", flush=True)
         print("=" * 60, flush=True)
@@ -1103,21 +1102,25 @@ def main():
 
     args = parser.parse_args()
 
-    env_port = os.environ.get("PORT")
-    web_port = int(env_port) if env_port else args.web_port
-    enable_web = args.web or (env_port is not None)
-    tcp_port = args.port
-    if enable_web and tcp_port == web_port:
-        tcp_port = 6378
+    # Railway-compatible dynamic port configuration
+    if "PORT" in os.environ:
+        port = int(os.environ.get("PORT", 6380))
+        web_port = port
+        resp_port = port - 1 if port > 1 else 6379
+        enable_web = True
+    else:
+        web_port = args.web_port
+        resp_port = args.port
+        enable_web = args.web
 
     if args.mode == "cli":
-        run_cli_client(host="127.0.0.1" if args.host == "0.0.0.0" else args.host, port=args.port, use_tls=args.tls)
+        run_cli_client(host="127.0.0.1" if args.host == "0.0.0.0" else args.host, port=resp_port, use_tls=args.tls)
     else:
         tls_cert = args.cert if args.tls and os.path.exists(args.cert) else None
         tls_key = args.key if args.tls and os.path.exists(args.key) else None
         server = MicroRedisVaultServer(
             host=args.host,
-            port=tcp_port,
+            port=resp_port,
             web_port=web_port,
             enable_web=enable_web,
             tls_cert=tls_cert,
