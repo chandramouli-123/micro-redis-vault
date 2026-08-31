@@ -839,16 +839,24 @@ class MicroRedisVaultServer:
             def log_message(self, format, *args):
                 pass
 
+            def do_HEAD(self):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+
             def do_GET(self):
                 parsed = urlparse(self.path)
-                if parsed.path == "/" or parsed.path == "/index.html":
+                if parsed.path in ["/", "/index.html", "/health"]:
                     self.send_response(200)
                     self.send_header("Content-Type", "text/html; charset=utf-8")
+                    self.send_header("Access-Control-Allow-Origin", "*")
                     self.end_headers()
                     self.wfile.write(server_instance._render_web_dashboard().encode('utf-8'))
                 elif parsed.path == "/api/stats":
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
+                    self.send_header("Access-Control-Allow-Origin", "*")
                     self.end_headers()
                     uptime = int(time.time() - server_instance.storage.created_at)
                     with server_instance.storage.lock:
@@ -871,7 +879,7 @@ class MicroRedisVaultServer:
                     content_len = int(self.headers.get('Content-Length', 0))
                     body = self.rfile.read(content_len).decode('utf-8')
                     try:
-                        req_data = json.loads(body)
+                        req_data = json.loads(body) if body else {}
                         cmd_line = req_data.get("command", "")
                         try:
                             args = shlex.split(cmd_line)
@@ -881,14 +889,20 @@ class MicroRedisVaultServer:
                         resp_str = raw_resp.decode('utf-8', errors='ignore').strip('\r\n')
                         self.send_response(200)
                         self.send_header("Content-Type", "application/json")
+                        self.send_header("Access-Control-Allow-Origin", "*")
                         self.end_headers()
                         self.wfile.write(json.dumps({"response": resp_str}).encode('utf-8'))
                     except Exception as e:
-                        self.send_response(500)
+                        self.send_response(200)
                         self.send_header("Content-Type", "application/json")
+                        self.send_header("Access-Control-Allow-Origin", "*")
                         self.end_headers()
-                        self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                        self.wfile.write(json.dumps({"error": f"-ERR {str(e)}"}).encode('utf-8'))
+                else:
+                    self.send_response(404)
+                    self.end_headers()
 
+        print(f"  * Web Server listening on http://0.0.0.0:{self.web_port}", flush=True)
         web_srv = HTTPServer(("0.0.0.0", self.web_port), WebHandler)
         web_srv.serve_forever()
 
@@ -897,30 +911,53 @@ class MicroRedisVaultServer:
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Micro-Redis-Vault Dashboard</title>
 <style>
-  body { font-family: sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; }
-  .grid { display: flex; gap: 15px; margin-bottom: 20px; }
-  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 15px; flex: 1; }
-  .val { font-size: 24px; font-weight: bold; color: #58a6ff; }
-  .term { background: #000; border: 1px solid #30363d; border-radius: 8px; padding: 15px; }
-  #term-out { height: 250px; overflow-y: auto; color: #39d353; font-family: monospace; white-space: pre-wrap; }
-  input { width: 80%; padding: 8px; background: #161b22; border: 1px solid #30363d; color: #fff; font-family: monospace; }
-  button { padding: 8px 16px; background: #238636; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0A0E14; color: #E6EDF3; padding: 24px; }
+  h1 { font-size: 22px; font-weight: 700; color: #2DD4A7; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .card { background: #141B24; border: 1px solid #263342; border-radius: 8px; padding: 14px; }
+  .lbl { font-size: 12px; color: #8B949E; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .val { font-size: 22px; font-weight: bold; color: #38BDF8; font-family: monospace; }
+  .term-box { background: #000; border: 1px solid #263342; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  #term-out { height: 280px; overflow-y: auto; color: #2DD4A7; font-family: 'Courier New', Courier, monospace; font-size: 14px; white-space: pre-wrap; line-height: 1.5; }
+  .input-row { display: flex; gap: 10px; margin-top: 12px; }
+  input { flex: 1; padding: 10px 14px; background: #141B24; border: 1px solid #30363D; border-radius: 6px; color: #FFF; font-family: monospace; font-size: 14px; outline: none; }
+  input:focus { border-color: #2DD4A7; }
+  button { padding: 10px 20px; background: #2DD4A7; color: #0A0E14; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.15s; }
+  button:hover { background: #26b890; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .quick-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .qbtn { padding: 6px 12px; background: #161B22; border: 1px solid #30363D; color: #8B949E; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: monospace; }
+  .qbtn:hover { background: #21262D; color: #FFF; border-color: #58A6FF; }
 </style>
 </head>
 <body>
-  <h1>⚡ Micro-Redis-Vault</h1>
+  <h1>⚡ Micro-Redis-Vault <span style="font-size:12px; font-weight:normal; color:#8B949E; margin-left:8px;">Zero-Dependency In-Memory Crypto Vault</span></h1>
   <div class="grid">
-    <div class="card"><div>Clients</div><div class="val" id="st-clients">0</div></div>
-    <div class="card"><div>Total Keys</div><div class="val" id="st-keys">0</div></div>
-    <div class="card"><div>Commands</div><div class="val" id="st-cmds">0</div></div>
-    <div class="card"><div>Vault State</div><div class="val" id="st-vault">LOCKED</div></div>
+    <div class="card"><div class="lbl">Connected Clients</div><div class="val" id="st-clients">0</div></div>
+    <div class="card"><div class="lbl">Keys in RAM</div><div class="val" id="st-keys">0</div></div>
+    <div class="card"><div class="lbl">Commands Processed</div><div class="val" id="st-cmds">0</div></div>
+    <div class="card"><div class="lbl">Vault Status</div><div class="val" id="st-vault" style="color:#E85C4A;">LOCKED</div></div>
   </div>
-  <div class="term">
-    <div id="term-out">Micro-Redis-Vault Terminal Ready.\n</div>
-    <input type="text" id="cmd-in" placeholder="SET.ENC key secretval..." />
-    <button onclick="sendCmd()">Send</button>
+  <div class="term-box">
+    <div id="term-out">Micro-Redis-Vault Web REPL Console Ready.\nType commands below or click quick-actions.\n</div>
+    <div class="input-row">
+      <input type="text" id="cmd-in" placeholder="e.g. PING, AUTH.PASSPHRASE MasterKey2026!, SET.ENC user:101 secretval" onkeydown="if(event.key==='Enter'){sendCmd();}" autofocus />
+      <button id="send-btn" onclick="sendCmd()">Send</button>
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="quickFill('PING')">PING</button>
+      <button class="qbtn" onclick="quickFill('INFO')">INFO</button>
+      <button class="qbtn" onclick="quickFill('AUTH.PASSPHRASE MasterKey2026!')">AUTH.PASSPHRASE</button>
+      <button class="qbtn" onclick="quickFill('SET.ENC user:101:api_key sk_live_998877')">SET.ENC</button>
+      <button class="qbtn" onclick="quickFill('GET.DEC user:101:api_key')">GET.DEC</button>
+      <button class="qbtn" onclick="quickFill('SAVE')">SAVE</button>
+      <button class="qbtn" onclick="quickFill('VAULT.LOCK')">VAULT.LOCK</button>
+      <button class="qbtn" onclick="quickFill('AUDIT.VERIFY')">AUDIT.VERIFY</button>
+    </div>
   </div>
   <script>
     async function updateStats() {
@@ -930,26 +967,52 @@ class MicroRedisVaultServer:
         document.getElementById('st-clients').innerText = d.clients;
         document.getElementById('st-keys').innerText = d.keys_count;
         document.getElementById('st-cmds').innerText = d.total_commands;
-        document.getElementById('st-vault').innerText = d.vault_unlocked ? 'UNLOCKED' : 'LOCKED';
+        const vElem = document.getElementById('st-vault');
+        if (d.vault_unlocked) {
+          vElem.innerText = 'UNLOCKED';
+          vElem.style.color = '#2DD4A7';
+        } else {
+          vElem.innerText = 'LOCKED';
+          vElem.style.color = '#E85C4A';
+        }
       } catch(e){}
     }
-    setInterval(updateStats, 1000);
+    setInterval(updateStats, 1500);
     updateStats();
+
+    function quickFill(cmd) {
+      document.getElementById('cmd-in').value = cmd;
+      sendCmd();
+    }
+
     async function sendCmd() {
       const inp = document.getElementById('cmd-in');
       const term = document.getElementById('term-out');
+      const btn = document.getElementById('send-btn');
       const cmd = inp.value.trim();
       if(!cmd) return;
-      term.innerText += '\n> ' + cmd + '\n';
+      term.innerText += '\\n> ' + cmd + '\\n';
       inp.value = '';
-      const r = await fetch('/api/exec', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({command: cmd})
-      });
-      const d = await r.json();
-      term.innerText += (d.response || d.error) + '\n';
-      term.scrollTop = term.scrollHeight;
+      btn.disabled = true;
+      btn.innerText = '...';
+      try {
+        const r = await fetch('/api/exec', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({command: cmd})
+        });
+        const d = await r.json();
+        const text = (d.response !== undefined) ? d.response : (d.error || 'Empty response');
+        term.innerText += text + '\\n';
+      } catch(err) {
+        term.innerText += 'Network Error: ' + err.message + '\\n';
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Send';
+        term.scrollTop = term.scrollHeight;
+        inp.focus();
+        updateStats();
+      }
     }
   </script>
 </body>
@@ -1036,6 +1099,9 @@ def main():
     env_port = os.environ.get("PORT")
     web_port = int(env_port) if env_port else args.web_port
     enable_web = args.web or (env_port is not None)
+    tcp_port = args.port
+    if enable_web and tcp_port == web_port:
+        tcp_port = 6378
 
     if args.mode == "cli":
         run_cli_client(host="127.0.0.1" if args.host == "0.0.0.0" else args.host, port=args.port, use_tls=args.tls)
@@ -1044,7 +1110,7 @@ def main():
         tls_key = args.key if args.tls and os.path.exists(args.key) else None
         server = MicroRedisVaultServer(
             host=args.host,
-            port=args.port,
+            port=tcp_port,
             web_port=web_port,
             enable_web=enable_web,
             tls_cert=tls_cert,
