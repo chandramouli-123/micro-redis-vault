@@ -562,13 +562,13 @@ class MicroRedisVaultServer:
         env_port = os.environ.get("PORT")
         if env_port:
             port_num = int(env_port)
-            self.web_port = int(web_port) if web_port is not None else port_num
-            self.port = int(port) if port is not None else (port_num - 1 if port_num > 1 else 6379)
-            self.enable_web = True if enable_web is None else enable_web
+            self.web_port = port_num
+            self.port = port_num - 1 if port_num > 1 else 6379
+            self.enable_web = True
         else:
             self.web_port = int(web_port) if web_port is not None else 6380
             self.port = int(port) if port is not None else 6379
-            self.enable_web = False if enable_web is None else enable_web
+            self.enable_web = bool(enable_web) if enable_web is not None else False
 
         self.tls_cert = tls_cert
         self.tls_key = tls_key
