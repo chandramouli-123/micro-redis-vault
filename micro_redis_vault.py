@@ -69,13 +69,26 @@ class CryptoEngine:
             counter += 1
         return b''.join(blocks)[:length]
 
+    _used_nonces = set()
+    _nonce_lock = threading.Lock()
+
+    @classmethod
+    def generate_nonce(cls) -> bytes:
+        """Generates a cryptographically random 16-byte nonce with uniqueness tracking."""
+        with cls._nonce_lock:
+            while True:
+                nonce = secrets.token_bytes(16)
+                if nonce not in cls._used_nonces:
+                    cls._used_nonces.add(nonce)
+                    return nonce
+
     @classmethod
     def encrypt(cls, plaintext: bytes, key: bytes) -> bytes:
         """
         Encrypts plaintext with authenticated envelope:
         [16 bytes CSPRNG Nonce] + [Ciphertext] + [32 bytes HMAC-SHA256 Tag]
         """
-        nonce = secrets.token_bytes(16)
+        nonce = cls.generate_nonce()
         keystream = cls._generate_keystream(key, nonce, len(plaintext))
         ciphertext = bytes(p ^ k for p, k in zip(plaintext, keystream))
         tag = hmac.new(key, nonce + ciphertext, hashlib.sha256).digest()
