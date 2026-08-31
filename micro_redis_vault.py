@@ -574,46 +574,53 @@ class MicroRedisVaultServer:
             web_thread = threading.Thread(target=self._start_web_server, daemon=True)
             web_thread.start()
 
-        raw_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        raw_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        raw_sock.bind((self.host, self.port))
-        raw_sock.listen(128)
+        try:
+            raw_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            raw_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            raw_sock.bind((self.host, self.port))
+            raw_sock.listen(128)
+            self.server_sock = raw_sock
+        except Exception as e:
+            self.server_sock = None
+            print(f"  * Note: TCP listener not bound on {self.host}:{self.port} ({e})", flush=True)
 
-        self.server_sock = raw_sock
-
-        print("=" * 60)
-        print("  ⚡ MICRO-REDIS-VAULT SERVER READY ⚡")
-        print(f"  * TCP / RESP Server listening on : {self.host}:{self.port}")
+        print("=" * 60, flush=True)
+        print("  ⚡ MICRO-REDIS-VAULT SERVER READY ⚡", flush=True)
+        if self.server_sock:
+            print(f"  * TCP / RESP Server listening on : {self.host}:{self.port}", flush=True)
         if self.ssl_context:
-            print("  * Transport Security (TLS)       : ENABLED 🔒")
+            print("  * Transport Security (TLS)       : ENABLED 🔒", flush=True)
         if self.enable_web:
-            print(f"  * Web Console & Metrics UI on    : http://127.0.0.1:{self.web_port}")
-        print("  * Zero 3rd-party dependencies    : 100% Python Stdlib")
-        print("  * Hash-Chained Audit Ledger      : audit.log")
-        print("=" * 60)
+            print(f"  * Web Server listening on        : http://0.0.0.0:{self.web_port}", flush=True)
+        print("  * Zero 3rd-party dependencies    : 100% Python Stdlib", flush=True)
+        print("  * Hash-Chained Audit Ledger      : audit.log", flush=True)
+        print("=" * 60, flush=True)
 
         try:
             while self.running:
-                try:
-                    client_sock, client_addr = self.server_sock.accept()
-                    if self.ssl_context:
-                        try:
-                            client_sock = self.ssl_context.wrap_socket(client_sock, server_side=True)
-                        except ssl.SSLError as se:
-                            client_sock.close()
-                            continue
-                    with self.lock:
-                        self.connected_clients += 1
-                    t = threading.Thread(
-                        target=self._handle_client,
-                        args=(client_sock, client_addr),
-                        daemon=True
-                    )
-                    t.start()
-                except socket.error:
-                    break
+                if self.server_sock:
+                    try:
+                        client_sock, client_addr = self.server_sock.accept()
+                        if self.ssl_context:
+                            try:
+                                client_sock = self.ssl_context.wrap_socket(client_sock, server_side=True)
+                            except ssl.SSLError:
+                                client_sock.close()
+                                continue
+                        with self.lock:
+                            self.connected_clients += 1
+                        t = threading.Thread(
+                            target=self._handle_client,
+                            args=(client_sock, client_addr),
+                            daemon=True
+                        )
+                        t.start()
+                    except socket.error:
+                        break
+                else:
+                    time.sleep(1)
         except KeyboardInterrupt:
-            print("\nShutting down Micro-Redis-Vault...")
+            print("\nShutting down Micro-Redis-Vault...", flush=True)
         finally:
             self.stop()
 
