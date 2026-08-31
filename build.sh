@@ -33,4 +33,4 @@ echo "------------------------------------------------------------------"
 sha256sum micro_redis_vault.py
 sha256sum test_micro_redis_vault.py
 echo "------------------------------------------------------------------"
-echo "🎉 Build verification PASSED with ZERO dependencies!"
+echo "Build verification PASSED with ZERO dependencies!"

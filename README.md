@@ -13,11 +13,11 @@
 ## 📌 Project Links & Live Cloud Deployment
 
 * **Live Web Dashboard:** [https://perceptive-wisdom-production-c752.up.railway.app/](https://perceptive-wisdom-production-c752.up.railway.app/)
-* **Live TCP Instance:** `turntable.proxy.rlwy.net:58674` *(Online & verified)*
+* **Live TCP Instance:** `turntable.proxy.rlwy.net:58674` *(Online)*
 * **Connect via Netcat:** `nc turntable.proxy.rlwy.net 58674`
 * **Connect via CLI Client:** `python3 micro_redis_vault.py cli --host turntable.proxy.rlwy.net --port 58674`
 * **Pitch Deck Presentation:** [Presentation](https://docs.google.com/presentation/d/1L7L4Fr1MbpJ4qdK6iGfQmS3awOWXy8COiQKjk4wZWO0/edit?usp=sharing) 
-* **Video Walkthrough (5-min Demo):** [Video Link](https://youtube.com)
+* **Video Walkthrough (5-min Demo):** [Video Link](https://www.youtube.com/watch?v=mh30I8mPpHQ)
 * **Technical Article & Deep-Dive:** [Blog](https://medium.com/@chandra_1810)
 
 ---
