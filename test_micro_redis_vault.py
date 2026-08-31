@@ -9,6 +9,7 @@ cryptographic envelope integrity, rate-limiting, and audit ledger.
 import unittest
 import time
 import os
+import socket
 import threading
 import json
 from micro_redis_vault import (
@@ -198,6 +199,36 @@ class TestRespParser(unittest.TestCase):
         raw = b'SET "user session" "secret token value"\r\n'
         args, rest = RespParser.parse_stream(raw)
         self.assertEqual(args, ["SET", "user session", "secret token value"])
+
+
+class TestWebServerStartup(unittest.TestCase):
+    def test_web_server_port_conflict_does_not_crash(self):
+        bound_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        bound_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        bound_sock.bind(("127.0.0.1", 0))
+        port = bound_sock.getsockname()[1]
+        bound_sock.listen(1)
+        server = MicroRedisVaultServer(host="127.0.0.1", port=6379, web_port=port, enable_web=True)
+
+        result = {}
+
+        def run_server():
+            try:
+                server._start_web_server()
+                result["raised"] = False
+            except OSError as exc:
+                result["raised"] = True
+                result["error"] = str(exc)
+
+        worker = threading.Thread(target=run_server, daemon=True)
+        worker.start()
+        worker.join(timeout=3)
+
+        try:
+            self.assertFalse(worker.is_alive(), "Web server startup should not block on a port conflict")
+            self.assertFalse(result.get("raised", False), "Web server should handle a port conflict without raising")
+        finally:
+            bound_sock.close()
 
 
 if __name__ == "__main__":

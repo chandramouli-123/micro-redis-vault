@@ -577,6 +577,7 @@ class MicroRedisVaultServer:
         self.audit = AuditLedger()
         self.running = False
         self.server_sock = None
+        self.web_server = None
         self.ssl_context = None
         self.connected_clients = 0
         self.lock = threading.Lock()
@@ -648,6 +649,16 @@ class MicroRedisVaultServer:
 
     def stop(self):
         self.running = False
+        if self.web_server:
+            try:
+                self.web_server.shutdown()
+            except Exception:
+                pass
+            try:
+                self.web_server.server_close()
+            except Exception:
+                pass
+            self.web_server = None
         if self.server_sock:
             try:
                 self.server_sock.close()
@@ -931,9 +942,15 @@ class MicroRedisVaultServer:
                     self.send_response(404)
                     self.end_headers()
 
-        print(f"  * Web Server listening on http://0.0.0.0:{self.web_port}", flush=True)
-        web_srv = HTTPServer(("0.0.0.0", self.web_port), WebHandler)
-        web_srv.serve_forever()
+        try:
+            web_srv = HTTPServer(("0.0.0.0", self.web_port), WebHandler)
+            self.web_server = web_srv
+            print(f"  * Web Server listening on http://0.0.0.0:{self.web_port}", flush=True)
+            web_srv.serve_forever()
+        except OSError as exc:
+            print(f"  * Note: Web server not bound on 0.0.0.0:{self.web_port} ({exc})", flush=True)
+            self.web_server = None
+            return
 
     def _render_web_dashboard(self) -> str:
         return """<!DOCTYPE html>
