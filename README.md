@@ -15,9 +15,9 @@
 * **Live TCP Instance:** `tokaido.proxy.rlwy.net:31277` *(Online & verified)*
 * **Connect via Netcat:** `nc tokaido.proxy.rlwy.net 31277`
 * **Connect via CLI Client:** `python3 micro_redis_vault.py cli --host tokaido.proxy.rlwy.net --port 31277`
-* **Pitch Deck Presentation:** [Google Drive / Slides Link Placeholder](https://drive.google.com) *(Add public link)*
-* **Video Walkthrough (5-min Demo):** [YouTube / Loom Video Link Placeholder](https://youtube.com) *(Add public link)*
-* **Technical Article & Deep-Dive:** [Read Write-Up on STDLIB.md](STDLIB.md) *(Or add Blog link)*
+* **Pitch Deck Presentation:** [Presentation](https://docs.google.com/presentation/d/1L7L4Fr1MbpJ4qdK6iGfQmS3awOWXy8COiQKjk4wZWO0/edit?usp=sharing) 
+* **Video Walkthrough (5-min Demo):** [Video Link](https://youtube.com)
+* **Technical Article & Deep-Dive:** [Blog](https://medium.com/@chandra_1810)
 
 ---
 
