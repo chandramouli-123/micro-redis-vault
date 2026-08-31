@@ -1144,12 +1144,13 @@ def main():
 
     # Railway-compatible dynamic port configuration
     if "PORT" in os.environ:
-        port = int(os.environ.get("PORT", 6380))
+        port = int(os.environ.get("PORT", 8080))
         web_port = port
         resp_port = port - 1 if port > 1 else 6379
         enable_web = True
     else:
-        web_port = args.web_port
+        default_web_port = 8080 if args.web else 6380
+        web_port = args.web_port if args.web else default_web_port
         resp_port = args.port
         enable_web = args.web
 
