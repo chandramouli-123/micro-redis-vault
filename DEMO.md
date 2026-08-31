@@ -2,9 +2,10 @@
 
 [![Watch the Demo](https://img.shields.io/badge/YouTube-Watch%20Demo%20Video-red?style=for-the-badge&logo=youtube)](https://youtube.com)
 
-> **Live Public TCP Proxy:** `tokaido.proxy.rlwy.net:31277`  
-> **Connect via CLI:** `python3 micro_redis_vault.py cli --host tokaido.proxy.rlwy.net --port 31277`  
-> **Connect via Netcat:** `nc tokaido.proxy.rlwy.net 31277`  
+> **Live Web Console URL:** [https://perceptive-wisdom-production-c752.up.railway.app/](https://perceptive-wisdom-production-c752.up.railway.app/)  
+> **Live Public TCP Proxy:** `turntable.proxy.rlwy.net:58674`  
+> **Connect via CLI:** `python3 micro_redis_vault.py cli --host turntable.proxy.rlwy.net --port 58674`  
+> **Connect via Netcat:** `nc turntable.proxy.rlwy.net 58674`  
 > **Hackathon Tracks:** Track D (Data & Storage) & Track E (Security & Crypto)
 
 ---
@@ -13,7 +14,7 @@
 Anyone or any judge can connect to our live deployed instance over public TCP:
 ```bash
 # Connect with standard Netcat over the internet:
-nc tokaido.proxy.rlwy.net 31277
+nc turntable.proxy.rlwy.net 58674
 
 # Send Redis commands:
 PING
