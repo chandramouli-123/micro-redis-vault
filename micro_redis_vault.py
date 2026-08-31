@@ -562,8 +562,9 @@ class MicroRedisVaultServer:
         env_port = os.environ.get("PORT")
         if env_port:
             port_num = int(env_port)
-            self.web_port = port_num
-            self.port = port_num - 1 if port_num > 1 else 6379
+            self.web_port = int(web_port) if web_port is not None else port_num
+            default_resp = (port_num - 1) if (port_num - 1) >= 1024 else 6379
+            self.port = int(port) if port is not None else default_resp
             self.enable_web = True
         else:
             self.web_port = int(web_port) if web_port is not None else 6380
@@ -578,6 +579,7 @@ class MicroRedisVaultServer:
         self.running = False
         self.server_sock = None
         self.web_server = None
+        self.web_server_bound = False
         self.ssl_context = None
         self.connected_clients = 0
         self.lock = threading.Lock()
@@ -597,6 +599,7 @@ class MicroRedisVaultServer:
         if self.enable_web:
             web_thread = threading.Thread(target=self._start_web_server, daemon=True)
             web_thread.start()
+            time.sleep(0.05)
 
         try:
             raw_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -610,7 +613,10 @@ class MicroRedisVaultServer:
 
         print("=" * 60, flush=True)
         print("  ⚡ MICRO-REDIS-VAULT SERVER READY ⚡", flush=True)
-        print(f"Web server listening on 0.0.0.0:{self.web_port}", flush=True)
+        if self.web_server_bound:
+            print(f"Web server listening on 0.0.0.0:{self.web_port}", flush=True)
+        elif self.enable_web:
+            print(f"  * Note: Web server not bound on 0.0.0.0:{self.web_port}", flush=True)
         if self.server_sock:
             print(f"RESP server listening on 0.0.0.0:{self.port}", flush=True)
         if self.ssl_context:
@@ -942,12 +948,17 @@ class MicroRedisVaultServer:
                     self.send_response(404)
                     self.end_headers()
 
+        class ReusableHTTPServer(HTTPServer):
+            allow_reuse_address = True
+
         try:
-            web_srv = HTTPServer(("0.0.0.0", self.web_port), WebHandler)
+            web_srv = ReusableHTTPServer(("0.0.0.0", self.web_port), WebHandler)
             self.web_server = web_srv
+            self.web_server_bound = True
             print(f"  * Web Server listening on http://0.0.0.0:{self.web_port}", flush=True)
             web_srv.serve_forever()
         except OSError as exc:
+            self.web_server_bound = False
             print(f"  * Note: Web server not bound on 0.0.0.0:{self.web_port} ({exc})", flush=True)
             self.web_server = None
             return
@@ -1133,25 +1144,25 @@ def main():
     parser = argparse.ArgumentParser(description="Micro-Redis-Vault")
     parser.add_argument("mode", nargs="?", default="server", choices=["server", "cli", "test"])
     parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=6379)
+    parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--web", action="store_true")
-    parser.add_argument("--web-port", type=int, default=6380)
+    parser.add_argument("--web-port", type=int, default=None)
     parser.add_argument("--tls", action="store_true", help="Enable TLS transport encryption")
     parser.add_argument("--cert", default="cert.pem", help="TLS certificate path")
     parser.add_argument("--key", default="key.pem", help="TLS private key path")
 
     args = parser.parse_args()
 
-    # Railway-compatible dynamic port configuration
+    # Dynamic port configuration from environment or CLI arguments
     if "PORT" in os.environ:
-        port = int(os.environ.get("PORT", 8080))
-        web_port = port
-        resp_port = port - 1 if port > 1 else 6379
+        env_p = int(os.environ.get("PORT", 8080))
+        web_port = args.web_port if args.web_port is not None else env_p
+        default_resp = (env_p - 1) if (env_p - 1) >= 1024 else 6379
+        resp_port = args.port if args.port is not None else default_resp
         enable_web = True
     else:
-        default_web_port = 8080 if args.web else 6380
-        web_port = args.web_port if args.web else default_web_port
-        resp_port = args.port
+        web_port = args.web_port if args.web_port is not None else (8080 if args.web else 6380)
+        resp_port = args.port if args.port is not None else 6379
         enable_web = args.web
 
     if args.mode == "cli":
