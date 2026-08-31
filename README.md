@@ -4,7 +4,7 @@
 > Built strictly using Python's standard library for the **Zero Dependency | 72-Hour Hackathon 2026** (Hackathon Raptors).
 
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20runtime-success?style=flat-square)](STDLIB.md)
-[![Tests Passing](https://img.shields.io/badge/tests-15%20passed%20(0.36s)-brightgreen?style=flat-square)](test_micro_redis_vault.py)
+[![Tests Passing](https://img.shields.io/badge/tests-16%20passed%20(0.37s)-brightgreen?style=flat-square)](test_micro_redis_vault.py)
 [![Track D & E](https://img.shields.io/badge/tracks-Data%20%26%20Security-blue?style=flat-square)](.zero-dep.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
@@ -47,7 +47,7 @@ Micro-Redis-Vault organizes its responsibilities into four strictly isolated lay
 ║  • Web Console       ║  • TLS Context (ssl) ║  • Automated IP Jailer (15 min)  ║  • 100ms TTL Sweeper   ║
 ║  • Redis-CLI / NC    ║  • Thread Pool       ║  • PBKDF2-HMAC Key Derivation     ║  • Inverted Search Idx ║
 ║  • Automated Spray   ║  • RESP Parser       ║  • HMAC-SHA256 Keystream Cipher   ║  • dump.enc Snapshot   ║
-║                      ║  • HTTP Server(6380) ║  • Linear Hash-Chained Audit Log  ║  • salt.bin (16B salt) ║
+║                      ║  • HTTP Server(8080) ║  • Linear Hash-Chained Audit Log  ║  • salt.bin (16B salt) ║
 ╚══════════════════════╩══════════════════════╩═══════════════════════════════════╩════════════════════════╝
 ```
 
