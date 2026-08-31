@@ -562,12 +562,18 @@ class MicroRedisVaultServer:
         env_port = os.environ.get("PORT")
         if env_port:
             port_num = int(env_port)
-            self.web_port = int(web_port) if web_port is not None else port_num
-            default_resp = (port_num - 1) if (port_num - 1) >= 1024 else 6379
-            self.port = int(port) if port is not None else default_resp
+            if web_port is not None:
+                self.web_port = int(web_port)
+            else:
+                self.web_port = 8080 if port_num in (8080, 6379) else port_num
+            
+            if port is not None:
+                self.port = int(port)
+            else:
+                self.port = 6379 if self.web_port == 8080 else ((port_num - 1) if (port_num - 1) >= 1024 else 6379)
             self.enable_web = True
         else:
-            self.web_port = int(web_port) if web_port is not None else 6380
+            self.web_port = int(web_port) if web_port is not None else 8080
             self.port = int(port) if port is not None else 6379
             self.enable_web = bool(enable_web) if enable_web is not None else False
 
@@ -1154,14 +1160,21 @@ def main():
     args = parser.parse_args()
 
     # Dynamic port configuration from environment or CLI arguments
-    if "PORT" in os.environ:
-        env_p = int(os.environ.get("PORT", 8080))
-        web_port = args.web_port if args.web_port is not None else env_p
-        default_resp = (env_p - 1) if (env_p - 1) >= 1024 else 6379
-        resp_port = args.port if args.port is not None else default_resp
+    env_p_str = os.environ.get("PORT")
+    if env_p_str:
+        env_p = int(env_p_str)
+        if args.web_port is not None:
+            web_port = args.web_port
+        else:
+            web_port = 8080 if env_p in (8080, 6379) else env_p
+        
+        if args.port is not None:
+            resp_port = args.port
+        else:
+            resp_port = 6379 if web_port == 8080 else ((env_p - 1) if (env_p - 1) >= 1024 else 6379)
         enable_web = True
     else:
-        web_port = args.web_port if args.web_port is not None else (8080 if args.web else 6380)
+        web_port = args.web_port if args.web_port is not None else 8080
         resp_port = args.port if args.port is not None else 6379
         enable_web = args.web
 
